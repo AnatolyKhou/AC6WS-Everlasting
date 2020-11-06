@@ -1,0 +1,36 @@
+
+-->Properties for AlgoEverTest
+   -->Run/Debug Settings
+      -->AlgoEverTest Debug
+         -->Debugger tab
+			Interface: PWD
+			Frequency: 1.8 MHz
+			Reset Mode: Hardware Reset
+			Enable debug in low power mode: OFF
+			Sharable ST-Link: ON
+         -->Common tab
+			Launch in background: OFF
+
+Variant #2
+         -->Debugger tab
+			Interface: JTAG
+			Frequency: 2.25 MHz
+
+
+param[0]	double	0.010538737929485733	
+param[1]	double	0.0011013548918332287	
+param[2]	double	118.22123893805309	
+param[3]	double	0.00029808238101217696	
+param[4]	double	0.00014960494968377491	
+
+coef[0]	double	-26323167794.826996	
+coef[1]	double	27175255.940960687	
+coef[2]	double	37867.914940200528	
+coef[3]	double	199000	
+coef[4]	double	610196108.18581998	
+
+
+
+
+
+SS
