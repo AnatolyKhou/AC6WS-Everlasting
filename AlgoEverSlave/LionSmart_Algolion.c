@@ -24,42 +24,29 @@ static unsigned char	flagInterfaceProvided	= FALSE;	// Either the LionSMART inte
 
 void ALGO_SlaveSetupInterface(PCLMM_INTERFACE_SLAVE pInterface)
 {
-	if ((pInterface->flashRead		== NULL) ||
-		(pInterface->flashWrite		== NULL) ||
-		(pInterface->getTime		== NULL) ||
-		(pInterface->getVoltage		== NULL) ||
-		(pInterface->getCurrent		== NULL) ||
-		(pInterface->getTemperature	== NULL) ||
-		flagInterfaceProvided)
-	{
-		//EV_ERROR3(EV_ERROR_MODULE_INITIALIZE);
-		return;
-	}
-
-	memcpy(&gInterfaceSlave, pInterface, sizeof(LMM_INTERFACE_SLAVE));
+	if (pInterface->flashRead		!= NULL) gInterfaceSlave.flashRead		= pInterface->flashRead;
+	if (pInterface->flashWrite		!= NULL) gInterfaceSlave.flashWrite		= pInterface->flashWrite;
+	if (pInterface->getTime			!= NULL) gInterfaceSlave.getTime		= pInterface->getTime;
+	if (pInterface->getVoltage		!= NULL) gInterfaceSlave.getVoltage		= pInterface->getVoltage;
+	if (pInterface->getCurrent		!= NULL) gInterfaceSlave.getCurrent		= pInterface->getCurrent;
+	if (pInterface->getTemperature	!= NULL) gInterfaceSlave.getTemperature	= pInterface->getTemperature;
 	flagInterfaceProvided = TRUE;
 }
 
 #define EV_FLASH_PAGE		256 // Bytes. The size of portion to read/write FLASH memory
-static const unsigned char EV_FLASH_MAGIC[7] = { 0x29, 0xC8, 0x27, 0xC6, 0x25, 0xC4, 0x23 };
+//static const unsigned char EV_FLASH_MAGIC[7] = { 0x29, 0xC8, 0x27, 0xC6, 0x25, 0xC4, 0x23 };
+
 
 inline __attribute__((always_inline)) static
 BOOL ev_flash_read_slave(void)
 {
-	unsigned short offset	= 0;
-	unsigned char  rc		= TRUE;
-	unsigned char* p		= (unsigned char*) &gHistory;
+	unsigned short offset;
+	unsigned char  rc = TRUE;
+	unsigned char* p = (unsigned char*) &gHistory;
 
-	for (unsigned char i = 0; rc && (i < sizeof(EV_TP_HISTORY) / EV_FLASH_PAGE); i++)
+	for (offset = 0; rc && (offset < sizeof(EV_TP_HISTORY)); offset += EV_FLASH_PAGE)
 	{
 		rc = gInterfaceSlave.flashRead(offset, p + offset, EV_FLASH_PAGE);
-		offset += EV_FLASH_PAGE;
-	}
-	rc = rc && gInterfaceSlave.flashRead(offset, p + offset, sizeof(EV_TP_HISTORY) - offset);
-	if (!rc || (memcmp(gHistory.magic, EV_FLASH_MAGIC, sizeof(EV_FLASH_MAGIC)) != 0))
-	{
-		ev_zeromem(&gHistory, sizeof(gHistory));
-		memcpy(gHistory.magic, EV_FLASH_MAGIC, sizeof(EV_FLASH_MAGIC));
 	}
 	return rc;
 }
@@ -67,27 +54,28 @@ BOOL ev_flash_read_slave(void)
 inline __attribute__((always_inline)) static
 BOOL ev_flash_write_slave(void)
 {
-	unsigned short offset	= 0;
-	unsigned char  rc		= TRUE;
-	unsigned char* p		= (unsigned char*) &gHistory;
+	unsigned short offset;
+	unsigned char  rc = TRUE;
+	unsigned char* p = (unsigned char*) &gHistory;
 
-	for (unsigned char i = 0; rc && (i < sizeof(EV_TP_HISTORY) / EV_FLASH_PAGE); i++)
+	for (offset = 0; rc && (offset < sizeof(EV_TP_HISTORY)); offset += EV_FLASH_PAGE)
 	{
 		rc = gInterfaceSlave.flashWrite(p + offset, EV_FLASH_PAGE);
-		offset += EV_FLASH_PAGE;
 	}
-	rc = rc && gInterfaceSlave.flashWrite(p + offset, sizeof(EV_TP_HISTORY) - offset);
 	return rc;
 }
 
 
 uint8_t  ALGO_SlaveInitialize(void)
 {
-	if (!flagInterfaceProvided || flagWasInitialized)
-	{
-		//EV_ERROR3(EV_ERROR_MODULE_INITIALIZE);
+	if (!flagInterfaceProvided || flagWasInitialized ||
+		(gInterfaceSlave.flashRead		== NULL) ||
+		(gInterfaceSlave.flashWrite		== NULL) ||
+		(gInterfaceSlave.getTime		== NULL) ||
+		(gInterfaceSlave.getVoltage		== NULL) ||
+		(gInterfaceSlave.getCurrent		== NULL) ||
+		(gInterfaceSlave.getTemperature	== NULL))
 		return ALGO_ERROR_INTEFACE;
-	}
 
 	if (!ev_check_mcu_id())
 		return ALGO_ERROR_SECURITY;
@@ -112,7 +100,13 @@ void ALGO_SlaveTerminate(void)
 		//EV_ERROR3(EV_ERROR_MODULE_INITIALIZE);
 		return;
 	}
-	//ev_select(&raw);
+
+	ULONG countSampleMax = g.uCountSample + 10;
+	while ((g.offsetSkipCheck <= 0) && (g.uCountSample < countSampleMax))
+	{
+		g.uCountSample++;
+		ev_select_tp();
+	}
 	ev_flash_write_slave();
 	flagShouldBeTerminated = TRUE;
 	flagInterfaceProvided = FALSE;

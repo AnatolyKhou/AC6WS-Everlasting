@@ -15,7 +15,7 @@
 
 #include "stm32f4xx.h"
 #include "string.h"
-#include "time.h"
+#include "assert.h"
 
 #define EV_SLAVE 1					// Make "LionSmart_Algolion.h" produces the program interface for Slave MCU
 #include "./../../AlgoEverSlave/LionSmart_Algolion.h"	// LIONSmart(C) interface for "Slave" and "Master" MCU
@@ -42,7 +42,7 @@
  * second module should produce ALGO_CELL_CRITICAL(3) State-of-Safety;
  * the others modules (from 3 up to 12) should produce ALGO_CELL_UNKNOWN(0).
  */
-uint16_t TestVoltageArray[EV_TEST_SERIES_COUNT][EV_MODULE_COUNT] = {
+static uint16_t TestVoltageArray[EV_TEST_SERIES_COUNT][EV_MODULE_COUNT] = {
 	{ 41120, 41120, 40000, 40000, 40000, 40000, 40000, 40000, 40000, 40000, 40000, 40000 },		// 1st measurement at 50 milliseconds
 	{ 41120, 41120, 40000, 40000, 40000, 40000, 40000, 40000, 40000, 40000, 40000, 40000 },		// 2nd measurement at 100 milliseconds
 	{ 41120, 41120, 40000, 40000, 40000, 40000, 40000, 40000, 40000, 40000, 40000, 40000 },		// 3
@@ -84,7 +84,7 @@ uint16_t TestVoltageArray[EV_TEST_SERIES_COUNT][EV_MODULE_COUNT] = {
  * !NOTE! It is physically incorrect use same time-series for ALGO_CELL_UNKNOWN (voltage series from 3 up to 12).
  *        But for the test it is OK.
  */
-int32_t TestCurrentArray[EV_TEST_SERIES_COUNT] = {
+static int32_t TestCurrentArray[EV_TEST_SERIES_COUNT] = {
 	-18700,		// 1st measurement at 50 milliseconds
 	-18700,		// 2nd measurement at 100 milliseconds
 	-18700,		// 3
@@ -117,7 +117,7 @@ int32_t TestCurrentArray[EV_TEST_SERIES_COUNT] = {
 	-285880		// 30s measurement at 1.5 seconds
 };
 
-uint16_t TestDataIndex; // Will be used as 0, 1, 2, ... 29 - index of current sample
+static uint16_t TestDataIndex; // Will be used as 0, 1, 2, ... 29 - index of current sample
 
 
 /**********************************************************************************************
@@ -170,7 +170,8 @@ uint8_t   FM_ALGO_WriteToFlashMemory(uint8_t *data, uint32_t dataLength)
 int main(void)
 {
 	// Reserve a space for results
-	uint8_t initialized, Results[EV_MODULE_COUNT];
+	int initialized;
+	uint8_t Results[EV_MODULE_COUNT];
 	const uint8_t *pResults;
 
 	//
@@ -204,7 +205,7 @@ int main(void)
 	//
 	// The AlgoSheild accumulates new sample (time, voltages, current) in the Transition Period Buffer
 	//
-	for(TestDataIndex = 0; TestDataIndex < EV_TEST_SERIES_COUNT; TestDataIndex++)
+	for (TestDataIndex = 0; TestDataIndex < EV_TEST_SERIES_COUNT; TestDataIndex++)
 	{
 		ALGO_SlaveEventTrigger(); // Do it EV_TEST_SERIES_COUNT times
 
@@ -232,6 +233,10 @@ int main(void)
 	//
 	pResults = ALGO_SlaveGetSoS();
 	memcpy(Results, pResults, EV_MODULE_COUNT); // Save results locally
+
+	assert(Results[0] == ALGO_CELL_NORMAL);
+	assert(Results[1] == ALGO_CELL_CRITICAL);
+	//assert(0 == 1);
 	return 0;
 }
 

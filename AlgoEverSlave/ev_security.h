@@ -30,9 +30,9 @@
 #define gDeviceID_N3_R2 0x43E943E9
 
 // Algolion debug on the development board STM32F413H-DISCO
-#define gDeviceID_N4_R0 0x44001F00
-#define gDeviceID_N4_R1 0x11513630
-#define gDeviceID_N4_R2 0x38363036
+#define gDeviceID_N4_R0 0x001F0044
+#define gDeviceID_N4_R1 0x30365111
+#define gDeviceID_N4_R2 0x36303638
 
 // Slave #5, : Shreyas-provided
 #define gDeviceID_N5_R0 0x00490030
@@ -49,9 +49,10 @@
 unsigned int ev_read_mcu_id(const unsigned char i)
 {
 	// Register 0x1FFF7A10	= 0001 1111 1111 1111   0111 1010 0001 0000
+	//						  0000 0111 1111 1111   1101 1110 1000 0100
 	// 0x1FFF7A10 / 4		= 0000 0111 1111 1111   1101 1110 1000 0100
 	unsigned int mcuid;
-	unsigned int* pr = (unsigned int*) ((0x7FFFDE84 + i) << 2);
+	unsigned int* pr = (unsigned int*) ((0x07FFDE84 + i) << 2);
 	mcuid = *pr;
 	return mcuid;
 }
